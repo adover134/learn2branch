@@ -124,15 +124,19 @@ class BipartiteGraphConvolution(K.Model):
         self.right_to_left = right_to_left
 
         # feature layers
+        # bipartite 그래프는 이분그래프라고도 한다. feature_module_left는 이분 그래프의 좌측에 해당하는 노드들을 embedding한다.
         self.feature_module_left = K.Sequential([
             K.layers.Dense(units=self.emb_size, activation=None, use_bias=True, kernel_initializer=self.initializer)
         ])
+        # feature_module_edge는 이분 그래프의 간선들을 embedding한다.
         self.feature_module_edge = K.Sequential([
             K.layers.Dense(units=self.emb_size, activation=None, use_bias=False, kernel_initializer=self.initializer)
         ])
+        # feature_module_right는 이분 그래프의 우측에 해당하는 노드들을 embedding한다.
         self.feature_module_right = K.Sequential([
             K.layers.Dense(units=self.emb_size, activation=None, use_bias=False, kernel_initializer=self.initializer)
         ])
+        # feature_module_final은 ?
         self.feature_module_final = K.Sequential([
             PreNormLayer(1, shift=False),  # normalize after summation trick
             K.layers.Activation(self.activation),
