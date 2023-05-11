@@ -47,6 +47,7 @@ class PreNormLayer(K.layers.Layer):
     def build(self, input_shapes):
         self.built = True
 
+        # 신경망에서 사용 시에는 pre_training을 통해 결정된 shift 및 scale 값으로 prenorm을 수행한다.
     def call(self, input):
         if self.waiting_updates:
             self.update_stats(input)
@@ -98,7 +99,8 @@ class PreNormLayer(K.layers.Layer):
         # delta는 기존 평균과 새 평균의 차이이다.
         delta = sample_avg - self.avg
 
-        # 분산 * 수는 합과 같다. 즉, 기존 데이터 합과 현재 데이터 합을 더하고, 평균 차이의 제곱과 데이터 수들의 곱을 곱한 것을 데이터 수로 나눈 값을 더한 것이다.
+        # 분산 * 수는 편차 제곱의 합과 같다.
+        # 이는 기존 데이터 편차 제곱의 합과 현재 데이터 편차 제곱의 합을 더하고, 평균 차이의 제곱과 데이터 수들의 곱을 곱한 것을 데이터 수로 나눈 값을 더한 것이다.
         # m2를 delta에 대해서 미분하면 delta에 두 수의 조화평균을 곱한 값이 된다. 
         self.m2 = self.var * self.count + sample_var * sample_count + delta ** 2 * self.count * sample_count / (
                 self.count + sample_count)
@@ -107,17 +109,20 @@ class PreNormLayer(K.layers.Layer):
         self.count += sample_count
         # 평균은 전체 확인한 데이터 수 중 현재 데이터의 비율에 대해서 delta 만큼 반영해준다.
         self.avg += delta * sample_count / self.count
-        # 분산에 대해서는 들어 있는 데이터들의 총합과 데이터 수의 조화평균의 적분의 합에 해당하는 m2를 사용한다.
+        # 분산에 대해서는 들어 있는 데이터들의 편차 제곱의 총합과 데이터 수의 조화평균의 적분의 합에 해당하는 m2를 사용한다.
         self.var = self.m2 / self.count if self.count > 0 else 1
 
     def stop_updates(self):
         """
         Ends pre-training for that layer, and fixes the layers's parameters.        
         """
+        
+        # shift 사용 시 평균 값을 대신 사용한다.
         assert self.count > 0
         if self.shift is not None:
             self.shift.assign(-self.avg)
         
+        # scale 값으로는 표준 편차를 사용한다.
         if self.scale is not None:
             self.var = tf.where(tf.equal(self.var, 0), tf.ones_like(self.var), self.var)  # NaN check trick
             self.scale.assign(1 / np.sqrt(self.var))
