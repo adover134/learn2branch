@@ -260,6 +260,7 @@ if __name__ == '__main__':
             train_data = train_data.batch(batch_size)
             train_data = train_data.map(load_batch_tf)
             train_data = train_data.prefetch(1)
+            # top_k는 가장 큰 k 개를 의미한다.
             train_loss, train_kacc = process(model, train_data, top_k, optimizer)
             log(f"TRAIN LOSS: {train_loss:0.3f} " + "".join([f" acc@{k}: {acc:0.3f}" for k, acc in zip(top_k, train_kacc)]), logfile)
 
