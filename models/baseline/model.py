@@ -84,11 +84,13 @@ class PreNormLayer(K.layers.Layer):
         # shape에는 1개의 -1 값이 존재할 수 있다. -1은 자동으로 값을 대입하라는 뜻이다.
         # 만약 input이 4*6 행렬이고 출력 shape이 [-1, 8]로 지정되어 있으면 24/8=3이므로 출력 shape은 [3, 8]이 된다.
         input = tf.reshape(input, [-1, self.n_units])
+        
         # tf.reduce_mean에서 2번째 인자는 axis 값이다.
         # 예를 들어, axis=0이고, 입력 행렬이 2*2 크기라고 하자.
         # 이 경우, 값은 [0,0], [0,1], [1,0], [1,1]의 4개의 위치에 있다.
         # 첫 축(차원)에 대해서 축소를 하므로 [0,0]과 [1,0]의 평균을 0, [0,1]과 [1,1]을 1의 위치에 둬서 1*2 크기의 행렬로 만든다.
         sample_avg = tf.reduce_mean(input, 0)
+        
         # 데이터들에 대한 분산 값을 구한다.
         sample_var = tf.reduce_mean((input - sample_avg) ** 2, axis=0)
         sample_count = tf.cast(tf.size(input=input) / self.n_units, tf.float32)
@@ -96,12 +98,16 @@ class PreNormLayer(K.layers.Layer):
         # delta는 기존 평균과 새 평균의 차이이다.
         delta = sample_avg - self.avg
 
-        # 
+        # 분산 * 수는 합과 같다. 즉, 기존 데이터 합과 현재 데이터 합을 더하고, 평균 차이의 제곱과 데이터 수들의 곱을 곱한 것을 데이터 수로 나눈 값을 더한 것이다.
+        # m2를 delta에 대해서 미분하면 delta에 두 수의 조화평균을 곱한 값이 된다. 
         self.m2 = self.var * self.count + sample_var * sample_count + delta ** 2 * self.count * sample_count / (
                 self.count + sample_count)
 
+        # pre-training을 수행할 때마다 해당하는 데이터 수만큼 train 한 셈이다.
         self.count += sample_count
+        # 평균은 전체 확인한 데이터 수 중 현재 데이터의 비율에 대해서 delta 만큼 반영해준다.
         self.avg += delta * sample_count / self.count
+        # 분산에 대해서는 들어 있는 데이터들의 총합과 데이터 수의 조화평균의 적분의 합에 해당하는 m2를 사용한다.
         self.var = self.m2 / self.count if self.count > 0 else 1
 
     def stop_updates(self):
