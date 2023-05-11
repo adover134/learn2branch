@@ -84,12 +84,19 @@ class PreNormLayer(K.layers.Layer):
         # shape에는 1개의 -1 값이 존재할 수 있다. -1은 자동으로 값을 대입하라는 뜻이다.
         # 만약 input이 4*6 행렬이고 출력 shape이 [-1, 8]로 지정되어 있으면 24/8=3이므로 출력 shape은 [3, 8]이 된다.
         input = tf.reshape(input, [-1, self.n_units])
+        # tf.reduce_mean에서 2번째 인자는 axis 값이다.
+        # 예를 들어, axis=0이고, 입력 행렬이 2*2 크기라고 하자.
+        # 이 경우, 값은 [0,0], [0,1], [1,0], [1,1]의 4개의 위치에 있다.
+        # 첫 축(차원)에 대해서 축소를 하므로 [0,0]과 [1,0]의 평균을 0, [0,1]과 [1,1]을 1의 위치에 둬서 1*2 크기의 행렬로 만든다.
         sample_avg = tf.reduce_mean(input, 0)
+        # 데이터들에 대한 분산 값을 구한다.
         sample_var = tf.reduce_mean((input - sample_avg) ** 2, axis=0)
         sample_count = tf.cast(tf.size(input=input) / self.n_units, tf.float32)
 
+        # delta는 기존 평균과 새 평균의 차이이다.
         delta = sample_avg - self.avg
 
+        # 
         self.m2 = self.var * self.count + sample_var * sample_count + delta ** 2 * self.count * sample_count / (
                 self.count + sample_count)
 
