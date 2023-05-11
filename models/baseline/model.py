@@ -80,6 +80,9 @@ class PreNormLayer(K.layers.Layer):
         """
         assert self.n_units == 1 or input.shape[-1] == self.n_units, f"Expected input dimension of size {self.n_units}, got {input.shape[-1]}."
 
+        # tf.reshape는 행렬과 출력 shape를 받아서 입력된 행렬을 해당 shape로 변환해준다.
+        # shape에는 1개의 -1 값이 존재할 수 있다. -1은 자동으로 값을 대입하라는 뜻이다.
+        # 만약 input이 4*6 행렬이고 출력 shape이 [-1, 8]로 지정되어 있으면 24/8=3이므로 출력 shape은 [3, 8]이 된다.
         input = tf.reshape(input, [-1, self.n_units])
         sample_avg = tf.reduce_mean(input, 0)
         sample_var = tf.reduce_mean((input - sample_avg) ** 2, axis=0)
