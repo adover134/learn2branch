@@ -254,6 +254,7 @@ if __name__ == '__main__':
             model.call = tfe.defun(model.call, input_signature=model.input_signature)
         else:
             # bugfix: tensorflow's shuffle() seems broken...
+            # RandomState.choice는 replace가 True일 때 복원추출을 한다.
             epoch_train_files = rng.choice(train_files, epoch_size * batch_size, replace=True)
             train_data = tf.data.Dataset.from_tensor_slices(epoch_train_files)
             train_data = train_data.batch(batch_size)
